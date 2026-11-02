@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern AI Chat UI</title>
+    
+    <!-- External Dependencies via CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-chatbg text-gray-100 font-sans antialiased h-screen overflow-hidden">
+
+    <div id="root"></div>
+
+    <!-- Configuration for Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        chatbg: '#212121',
+                        sidebar: '#171717',
+                        cardbg: '#2f2f2f',
+                        inputbg: '#2f2f2f',
+                        userbubble: '#212121'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Load external app.js and transpile React JSX via Babel standalone -->
+    <script type="text/babel" src="app.js" data-presets="react"></script>
+</body>
+</html>

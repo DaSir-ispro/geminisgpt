@@ -1,0 +1,225 @@
+const { useState, useEffect, useRef } = React;
+
+function App() {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [chatHistory] = useState([
+        { id: 1, title: 'Quantum Computing Intro' },
+        { id: 2, title: 'Python Tokenizer Script' },
+    ]);
+    const messagesEndRef = useRef(null);
+
+    // Auto-scroll to bottom of messages
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+        if (window.lucide) window.lucide.createIcons();
+    }, [messages, isGenerating, sidebarOpen]);
+
+    const handleSend = async (textToSend) => {
+        const prompt = textToSend || input;
+        if (!prompt.trim() || isGenerating) return;
+
+        const newMessages = [...messages, { role: 'user', content: prompt }];
+        setMessages(newMessages);
+        if (!textToSend) setInput('');
+        setIsGenerating(true);
+
+        // Placeholder for AI response stream
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+        try {
+            const encodedPrompt = encodeURIComponent(prompt);
+            const response = await fetch(`https://text.pollinations.ai/${encodedPrompt}?system=You+are+a+concise+helpful+AI+assistant.`);
+
+            if (!response.ok) throw new Error('Network error');
+
+            const fullText = await response.text();
+            
+            // Simulate streaming token effect
+            let currentText = '';
+            const words = fullText.split(' ');
+            
+            for (let i = 0; i < words.length; i++) {
+                currentText += (i === 0 ? '' : ' ') + words[i];
+                setMessages(prev => {
+                    const updated = [...prev];
+                    updated[updated.length - 1].content = currentText;
+                    return updated;
+                });
+                await new Promise(r => setTimeout(r, 25)); // Delay per token/word
+            }
+        } catch (err) {
+            setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1].content = 'Sorry, unable to get a response right now. Please check your internet connection.';
+                return updated;
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const startNewChat = () => {
+        setMessages([]);
+        setInput('');
+    };
+
+    return (
+        <div className="flex h-screen w-full relative">
+            
+            {/* SIDEBAR */}
+            <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-sidebar flex-shrink-0 transition-all duration-300 flex flex-col justify-between overflow-hidden border-r border-neutral-800 z-20`}>
+                <div className="p-3">
+                    <button onClick={startNewChat} className="w-full flex items-center justify-between p-3 rounded-lg border border-neutral-700 hover:bg-neutral-800 text-sm font-medium transition-colors">
+                        <span className="flex items-center gap-2">
+                            <i data-lucide="plus" className="w-4 h-4"></i> New chat
+                        </span>
+                        <i data-lucide="square-pen" className="w-4 h-4 text-gray-400"></i>
+                    </button>
+
+                    {/* Chat History List */}
+                    <div className="mt-6">
+                        <div className="text-xs font-semibold text-gray-500 px-3 mb-2">Recent</div>
+                        <div className="space-y-1">
+                            {chatHistory.map(chat => (
+                                <button key={chat.id} className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-neutral-800 rounded-lg truncate flex items-center gap-2">
+                                    <i data-lucide="message-square" className="w-4 h-4 text-gray-400 flex-shrink-0"></i>
+                                    <span className="truncate">{chat.title}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* User Profile Footer */}
+                <div className="p-3 border-t border-neutral-800">
+                    <div className="flex items-center gap-3 p-2 hover:bg-neutral-800 rounded-lg cursor-pointer">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-sm">
+                            U
+                        </div>
+                        <div className="text-sm font-medium">Guest User</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* MAIN CHAT AREA */}
+            <div className="flex-1 flex flex-col h-full bg-chatbg relative overflow-hidden">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-3 border-b border-neutral-800 bg-chatbg/80 backdrop-blur">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-neutral-800 rounded-lg text-gray-400 hover:text-white">
+                            <i data-lucide="panel-left" className="w-5 h-5"></i>
+                        </button>
+                        <span className="font-semibold text-gray-200">ChatGPT 4o</span>
+                    </div>
+                </div>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+                    {messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto space-y-6">
+                            <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center">
+                                <i data-lucide="sparkles" className="w-6 h-6 text-emerald-500"></i>
+                            </div>
+                            <h1 className="text-2xl font-semibold">What can I help with today?</h1>
+                            
+                            {/* Suggestion Cards */}
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                {[
+                                    { title: "Explain a concept", desc: "How quantum computing works" },
+                                    { title: "Write code", desc: "Python script to scrape a site" },
+                                    { title: "Brainstorm ideas", desc: "Fun team building activities" },
+                                    { title: "Help me write", desc: "Professional follow-up email" }
+                                ].map((item, idx) => (
+                                    <button 
+                                        key={idx} 
+                                        onClick={() => handleSend(item.desc)}
+                                        className="p-4 rounded-2xl bg-cardbg hover:bg-neutral-700/60 text-left transition-colors border border-neutral-800 flex flex-col justify-between"
+                                    >
+                                        <div className="font-medium text-sm text-gray-200">{item.title}</div>
+                                        <div className="text-xs text-gray-400 mt-1">{item.desc}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="max-w-3xl mx-auto space-y-6">
+                            {messages.map((msg, index) => (
+                                <div key={index} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    {msg.role === 'assistant' && (
+                                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
+                                            <i data-lucide="bot" className="w-5 h-5"></i>
+                                        </div>
+                                    )}
+                                    
+                                    <div className={`p-4 rounded-2xl max-w-[85%] ${
+                                        msg.role === 'user' 
+                                            ? 'bg-userbubble border border-neutral-700 text-gray-100' 
+                                            : 'text-gray-100'
+                                    }`}>
+                                        <div 
+                                            className={`prose prose-invert text-sm leading-relaxed ${isGenerating && index === messages.length - 1 ? 'typing-cursor' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: window.marked ? window.marked.parse(msg.content || '') : msg.content }}
+                                        />
+                                    </div>
+
+                                    {msg.role === 'user' && (
+                                        <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0 font-bold text-xs">
+                                            YOU
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Input Box */}
+                <div className="p-4 bg-chatbg border-t border-neutral-800/50">
+                    <div className="max-w-3xl mx-auto relative">
+                        <div className="flex items-center bg-inputbg rounded-3xl border border-neutral-700/60 px-4 py-2 focus-within:border-neutral-500 transition-colors">
+                            <textarea
+                                rows="1"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                placeholder="Message ChatGPT..."
+                                className="w-full bg-transparent text-sm text-gray-100 placeholder-gray-400 focus:outline-none resize-none py-2 max-h-32"
+                            />
+                            <button 
+                                onClick={() => handleSend()}
+                                disabled={!input.trim() || isGenerating}
+                                className={`ml-2 p-2 rounded-full transition-colors flex-shrink-0 ${
+                                    input.trim() && !isGenerating 
+                                        ? 'bg-white text-black hover:bg-gray-200' 
+                                        : 'bg-neutral-700 text-gray-500 cursor-not-allowed'
+                                }`}
+                            >
+                                <i data-lucide="arrow-up" className="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div className="text-[11px] text-gray-500 text-center mt-2">
+                            ChatGPT can make mistakes. Check important info.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
